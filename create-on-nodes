@@ -10,7 +10,8 @@ if [ -z "$IDENTITY_FILE" ]; then
   exit 1
 fi
 # Create on nodes
-NODES=`./pic list-nodename $IDENTITY_FILE | awk '{print $1}' | tr '\n' ' '`
+NODES=`cat NODES || ./pic list-nodename $IDENTITY_FILE | awk '{print $1}' | tr '\n' ' '`
+echo $NODES | tee NODES
 
 echo "Create on nodes: $NODES"
 for node in $NODES; do

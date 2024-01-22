@@ -1,4 +1,17 @@
 #!/bin/bash
 
 set -xeo pipefail
+build_phase3() {
+  echo "phase3"
+}
 
+build_phases=(
+  "phase1 phase2 phase3"
+)
+for phase in "${build_phases[@]}"; do
+    box1=`echo $phase | awk '{print $1}'`
+    box2=`echo $phase | awk '{print $2}'`
+    function_to_call="build_"`echo $phase | awk '{print $3}'`
+    $function_to_call
+    echo "box1: $box1, box2: $box2, function_to_call: $function_to_call"
+done
