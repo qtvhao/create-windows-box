@@ -30,12 +30,14 @@ install_windows() {
     VBoxManage modifyvm "empty-box" --boot1 dvd --boot2 disk --boot3 none --boot4 none
 
     VBoxManage startvm "empty-box" --type headless
+
+    NETWORK_INTERFACE=$(ip route | grep default | awk '{print $5}')
     while true; do
-        echo "Waiting for empty-box to poweroff"
-        sleep 6
-        if VBoxManage showvminfo "empty-box" | grep "State:" | grep "powered off"; then
-            break
-        fi
+        hostnameI=`hostname -I | tr ' ' '\n' | grep "192" | head -n 1`
+        HOST_PASSWORD=`cat /root/rdp_password.txt`
+        echo "Connect to $hostnameI:3389 with username: root, password: $HOST_PASSWORD and finish the Windows 10 installation. You must turn off the Windows 10 VM after the installation is complete"
+        sleep 8
+        VBoxManage modifyvm "empty-box" --nic1 bridged --bridgeadapter1 "$NETWORK_INTERFACE" && break || true
     done
     echo "empty-box is powered off"
 }
@@ -52,6 +54,12 @@ for phase in "${build_phases[@]}"; do
     if [ "x$COUNT_BOX2" != "x0" ]; then
         echo "$box2 exists, skip"
         continue
+    fi
+    # stop and delete $box1
+    COUNT_BOX1=`VBoxManage list vms | grep "$box1" | wc -l` || true
+    if [ "x$COUNT_BOX1" != "x0" ]; then
+        VBoxManage controlvm "$box1" poweroff || true
+        VBoxManage unregistervm "$box1" --delete || true
     fi
     
     echo "box1: $box1, box2: $box2, function_to_call: $function_to_call"
