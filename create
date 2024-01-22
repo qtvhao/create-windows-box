@@ -1,17 +1,50 @@
 #!/bin/bash
 
+
+grep avx2 /proc/cpuinfo || {
+    echo "CPU does not support AVX"
+    exit 0
+}
 set -xeo pipefail
+
 build_phase3() {
   echo "phase3"
 }
 
+WINDOWS_ISO_PATH="/root/windows.iso"
+create_empty_box_for_windows() {
+    VBoxManage controlvm "empty-box" poweroff || true
+    VBoxManage unregistervm "empty-box" --delete || true
+    echo "Creating empty box for Windows"
+    VBoxManage createvm --name "empty-box" --ostype "Windows10_64" --register
+    VBoxManage modifyvm "empty-box" --memory 8192 --cpus 2
+    VBoxManage modifyvm "empty-box" --nic1 none
+    # 
+    VBoxManage storagectl "empty-box" --name "IDE Controller" --add ide
+    VBoxManage storageattach "empty-box" --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium $WINDOWS_ISO_PATH
+
+    VBoxManage storagectl "empty-box" --name "SATA Controller" --remove || true
+    VBoxManage closemedium disk "/root/empty-box.vdi" --delete || true
+    VBoxManage createhd --filename "/root/empty-box.vdi" --size 50000 --format VDI # 50GB
+    VBoxManage storagectl "empty-box" --name "SATA Controller" --add sata --controller IntelAHCI
+    VBoxManage storageattach "empty-box" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium "/root/empty-box.vdi"
+
+    VBoxManage modifyvm "empty-box" --boot1 dvd --boot2 disk --boot3 none --boot4 none
+
+    VBoxManage startvm "empty-box" --type headless
+}
+
 build_phases=(
-  "phase1 phase2 phase3"
+  "empty-box phase2 phase3"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
     box2=`echo $phase | awk '{print $2}'`
     function_to_call="build_"`echo $phase | awk '{print $3}'`
-    $function_to_call
     echo "box1: $box1, box2: $box2, function_to_call: $function_to_call"
+    if [ "$box1" == "empty-box" ]; then
+        create_empty_box_for_windows
+    fi
+    $function_to_call
+    
 done
