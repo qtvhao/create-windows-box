@@ -152,6 +152,12 @@ install_rdp_server() {
 
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
+install_necessary_software () {
+    while true; do
+        sleep 6
+        echo "Must install the following software on Windows 10"
+    done
+} # install_necessary_software
 copy_necessary_files () {
     mkdir -p ./necessary-files/
     touch ./necessary-files/empty.txt
@@ -160,10 +166,16 @@ copy_necessary_files () {
         echo "TARGET_IP is not set"
         exit 1
     fi
+    ssh-keygen -R $TARGET_IP || true
+    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
     find ./necessary-files/ -type f | while read file; do
         echo "Copy $file to $TARGET_IP"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-Item -Path C:/Users/root/Desktop/$(dirname $file) -ItemType Directory -Force" || true
         scp -i /root/id_rsa $file $TARGET_IP:C:/Users/root/Desktop/
+    done
+    while true; do
+        sleep 6
+        echo "Must install the following software on Windows 10"
     done
 }
 
