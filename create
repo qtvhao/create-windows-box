@@ -48,6 +48,11 @@ get_vm_ip() {
             fi
         done
     done
+
+    touch /root/.ssh/known_hosts
+    ssh-keygen -R $TARGET_IP || true
+    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+
     echo "$NEW_IP_ADDRESS"
 }
 install_ssh_server() {
@@ -99,10 +104,45 @@ install_windows() {
     done
     echo "empty-box is powered off"
 }
+install_rdp_server() {
+    VBoxManage clonevm windows-installed-marked-as-done --name windows-ssh-rdp-ready --register
+    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready"`
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name 'fDenyTSConnections' -Value 0"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'UserAuthentication' -Value 1"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'SecurityLayer' -Value 0"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'PortNumber' -Value 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'fSingleSessionPerUser' -Value 0"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'MaxConnectionTime' -Value 999999"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'MaxDisconnectionTime' -Value 999999"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'MaxIdleTime' -Value 999999"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop ICMP4' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol ICMPv4"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop ICMP6' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol ICMPv6"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop (TCP-In)' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop - User Mode (TCP-In)' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop - User Mode (UDP-In)' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol UDP -LocalPort 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop - Shadow (TCP-In)' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389"
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-NetFirewallRule -DisplayName 'Remote Desktop - User Mode (TCP-In)' -Profile @('Domain', 'Private', 'Public') -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3389"
+
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\TCPIP\Parameters' -Name 'LSOv2IPv4' -Value 0"
+    while ! timeout 2 nc -z $TARGET_IP 3389; do
+        echo "Waiting for RDP server on $TARGET_IP"
+        sleep 5
+    done
+    Adapter_Name="Ethernet"
+
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
+
+
+    echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
+    echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
+}
 
 build_phases=(
   "empty-box install_windows windows-installed"
   "windows-installed install_ssh_server windows-ssh-ready"
+  "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
@@ -137,3 +177,7 @@ for phase in "${build_phases[@]}"; do
     VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
 done
 echo "Install Windows 10 finished"
+
+NEW_IP_ADDRESS=`get_vm_ip "windows-ssh-rdp-ready"`
+echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
+echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
