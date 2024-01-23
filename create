@@ -152,11 +152,27 @@ install_rdp_server() {
 
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
+copy_necessary_files () {
+    mkdir -p ./necessary-files/
+    touch ./necessary-files/empty.txt
+    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
+    if [ -z "$TARGET_IP" ]; then
+        echo "TARGET_IP is not set"
+        exit 1
+    fi
+    find ./necessary-files/ -type f | while read file; do
+        echo "Copy $file to $TARGET_IP"
+        ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-Item -Path C:/Users/root/Desktop/$(dirname $file) -ItemType Directory -Force" || true
+        scp -i /root/id_rsa $file $TARGET_IP:C:/Users/root/Desktop/
+    done
+}
 
 build_phases=(
   "empty-box install_windows windows-installed"
   "windows-installed install_ssh_server windows-ssh-ready"
   "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
+  "windows-ssh-rdp-ready copy_necessary_files windows-with-necessary-files"
+  "windows-with-necessary-files install_necessary_software windows-with-necessary-software"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
