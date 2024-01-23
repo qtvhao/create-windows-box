@@ -16,5 +16,8 @@ echo $NODES | tee NODES
 echo "Create on nodes: $NODES"
 for node in $NODES; do
   echo "Create on node: $node"
-  ssh -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node 'bash -s' < create
+
+  scp -o StrictHostKeyChecking=no -i $IDENTITY_FILE create $node:~/
+  ssh -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node "chmod +x create"
+  ssh -t -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node "./create"
 done

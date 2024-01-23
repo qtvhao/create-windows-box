@@ -5,6 +5,7 @@ grep avx2 /proc/cpuinfo || {
     echo "CPU does not support AVX"
     exit 0
 }
+chmod +x pic || curl https://raw.githubusercontent.com/qtvhao/picloud/main/pic -o pic && chmod +x pic
 set -xeo pipefail
 
 build_phase3() {
@@ -34,14 +35,13 @@ get_vm_ip() {
 
     EXISTS_IP=`get_ip_addresses_on_lan`
 
-    exit 1
     VBoxManage startvm "$VM" --type headless >&2 || exit 0
 
     NEW_IP_ADDRESS=""
     while [ -z "$NEW_IP_ADDRESS" ]; do
         echo "You must install the SSH server on Windows 10" >&2
         sleep 5
-        EXISTS_IP_2=`./pic list-ip-addresses | tr '\n' ' '`
+        EXISTS_IP_2=`get_ip_addresses_on_lan`
         for IP_ADDRESS in $EXISTS_IP_2; do
             if [[ $EXISTS_IP != *"$IP_ADDRESS"* ]]; then
                 NEW_IP_ADDRESS=$IP_ADDRESS
@@ -49,7 +49,6 @@ get_vm_ip() {
         done
     done
     echo "$NEW_IP_ADDRESS"
-
 }
 install_ssh_server() {
     VBoxManage clonevm empty-box-marked-as-done --name windows-installed --register
@@ -58,7 +57,6 @@ install_ssh_server() {
 
     TARGET_IP=`get_vm_ip "windows-installed"`
     echo "TARGET_IP: $TARGET_IP"
-    exit 1
     while true; do
         touch /root/.ssh/known_hosts
         ssh-keygen -R $TARGET_IP || true
