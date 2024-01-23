@@ -125,6 +125,8 @@ for phase in "${build_phases[@]}"; do
             VBoxManage unregistervm "$box1" --delete || true
 
             $function_to_call
+            VBoxManage controlvm "$box1" poweroff || true
+            # Mark as done
             VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
         else
             echo "$box1-marked-as-done exists, skip to call $function_to_call"
