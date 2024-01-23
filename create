@@ -113,8 +113,7 @@ install_windows() {
     echo "empty-box is powered off"
 }
 install_rdp_server() {
-    VBoxManage clonevm windows-installed-marked-as-done --name windows-ssh-rdp-ready --register
-    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
+    TARGET_IP=`get_vm_ip "windows-ssh-ready" 2>/dev/null`
     if [ -z "$TARGET_IP" ]; then
         echo "TARGET_IP is not set"
         exit 1
@@ -146,15 +145,12 @@ install_rdp_server() {
     done
     Adapter_Name="Ethernet"
 
-    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
-    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
-    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || \
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || \
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || \
     timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
 
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
-
-    echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
-    echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
 }
 
 build_phases=(
@@ -169,30 +165,34 @@ for phase in "${build_phases[@]}"; do
 
     COUNT_BOX2=`VBoxManage list vms | grep "$box2" | wc -l` || true
     if [ "x$COUNT_BOX2" != "x0" ]; then
-        echo "$box2 exists, skip"
-        continue
+        COUNT_BOX2_MARKED_AS_DONE=`VBoxManage list vms | grep "$box2-marked-as-done" | wc -l` || true
+        if [ "x$COUNT_BOX2_MARKED_AS_DONE" == "x1" ]; then
+            # check if box2 is marked as done, if yes, skip further steps
+            echo "$box2-marked-as-done exists, skip to call $function_to_call"
+            continue
+        fi
     fi
+    COUNT_BOX1_MARKED_AS_DONE=`VBoxManage list vms | grep "$box1-marked-as-done" | wc -l` || true
+    if [ "x$COUNT_BOX1_MARKED_AS_DONE" == "x1" ]; then
+        # check if box1 is marked as done, if yes, clone to box2, then skip further steps
+        echo "$box1-marked-as-done exists, clone to $box2"
+        VBoxManage controlvm "$box2" poweroff || true
+        VBoxManage unregistervm "$box2" --delete || true
+        echo "Clone $box1-marked-as-done to $box2"
+        VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
+        continue;
+    fi
+
     COUNT_BOX1=`VBoxManage list vms | grep "$box1" | wc -l` || true    
 
     if [ "x$COUNT_BOX1" != "x0" ]; then
         echo "$box1 exists"
-        COUNT_BOX1_MARKED_AS_DONE=`VBoxManage list vms | grep "$box1-marked-as-done" | wc -l` || true
-        if [ "x$COUNT_BOX1_MARKED_AS_DONE" == "x0" ]; then
-            echo "$box1 is not marked as done"
-            VBoxManage controlvm "$box1" poweroff || true
-            VBoxManage unregistervm "$box1" --delete || true
-
-            $function_to_call
-            VBoxManage controlvm "$box1" poweroff || true
-            # Mark as done
-            VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
-        else
-            echo "$box1-marked-as-done exists, skip to call $function_to_call"
-        fi
+        $function_to_call
+        VBoxManage controlvm "$box1" poweroff || true
+        echo "Mark $box1 as done"
+        VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
+        VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
     fi
-
-    VBoxManage controlvm "$box1" poweroff || true
-    VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
 done
 echo "Install Windows 10 finished"
 
