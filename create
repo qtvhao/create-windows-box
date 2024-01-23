@@ -52,6 +52,7 @@ get_vm_ip() {
 
 }
 install_ssh_server() {
+    VBoxManage clonevm empty-box-marked-as-done --name windows-installed --register
     echo "Installing SSH server"
     VBoxManage startvm "windows-installed" --type headless
 
@@ -109,24 +110,22 @@ for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
     box2=`echo $phase | awk '{print $3}'`
     function_to_call=`echo $phase | awk '{print $2}'`
-    # check if $box2 exists
+
     COUNT_BOX2=`VBoxManage list vms | grep "$box2" | wc -l` || true
     if [ "x$COUNT_BOX2" != "x0" ]; then
         echo "$box2 exists, skip"
         continue
     fi
-    # stop and delete $box1
-    COUNT_BOX1=`VBoxManage list vms | grep "$box1" | wc -l` || true
-    if [ "x$COUNT_BOX1" != "x0" ]; then
-        VBoxManage controlvm "$box1" poweroff || true
-        VBoxManage unregistervm "$box1" --delete || true
-    fi
-    
-    echo "box1: $box1, box2: $box2, function_to_call: $function_to_call"
+    COUNT_BOX1=`VBoxManage list vms | grep "$box1" | wc -l` || true    
 
     if [ "x$COUNT_BOX1" != "x0" ]; then
+        echo "$box1 exists"
         COUNT_BOX1_MARKED_AS_DONE=`VBoxManage list vms | grep "$box1-marked-as-done" | wc -l` || true
         if [ "x$COUNT_BOX1_MARKED_AS_DONE" == "x0" ]; then
+            echo "$box1 is not marked as done"
+            VBoxManage controlvm "$box1" poweroff || true
+            VBoxManage unregistervm "$box1" --delete || true
+
             $function_to_call
             VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
         else
