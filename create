@@ -1,6 +1,8 @@
 #!/bin/bash
 
-
+# remove vm windows-ssh-rdp-ready
+VBoxManage controlvm windows-ssh-rdp-ready poweroff || true
+VBoxManage unregistervm windows-ssh-rdp-ready --delete || true
 grep avx2 /proc/cpuinfo || {
     echo "CPU does not support AVX"
     exit 0
@@ -50,17 +52,23 @@ get_vm_ip() {
     done
 
     touch /root/.ssh/known_hosts
-    ssh-keygen -R $TARGET_IP || true
-    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+    if [ -z "$NEW_IP_ADDRESS" ]; then
+        sleep 8
+        echo `get_vm_ip "$VM"`
+    else
+        ssh-keygen -R $TARGET_IP || true
+        ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
 
-    echo "$NEW_IP_ADDRESS"
+        echo "$NEW_IP_ADDRESS"
+    fi
+
 }
 install_ssh_server() {
     VBoxManage clonevm empty-box-marked-as-done --name windows-installed --register
     echo "Installing SSH server"
     VBoxManage startvm "windows-installed" --type headless
 
-    TARGET_IP=`get_vm_ip "windows-installed"`
+    TARGET_IP=`get_vm_ip "windows-installed" 2>/dev/null`
     echo "TARGET_IP: $TARGET_IP"
     while true; do
         touch /root/.ssh/known_hosts
@@ -106,7 +114,13 @@ install_windows() {
 }
 install_rdp_server() {
     VBoxManage clonevm windows-installed-marked-as-done --name windows-ssh-rdp-ready --register
-    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready"`
+    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
+    if [ -z "$TARGET_IP" ]; then
+        echo "TARGET_IP is not set"
+        exit 1
+    fi
+    ssh-keygen -R $TARGET_IP || true
+    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
     ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Force"
     ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name 'fDenyTSConnections' -Value 0"
     ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name 'UserAuthentication' -Value 1"
@@ -133,7 +147,11 @@ install_rdp_server() {
     Adapter_Name="Ethernet"
 
     timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
+    timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
 
+    VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 
     echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
     echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
@@ -178,6 +196,6 @@ for phase in "${build_phases[@]}"; do
 done
 echo "Install Windows 10 finished"
 
-NEW_IP_ADDRESS=`get_vm_ip "windows-ssh-rdp-ready"`
+NEW_IP_ADDRESS=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
 echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
 echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
