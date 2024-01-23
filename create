@@ -155,9 +155,9 @@ install_necessary_software () {
     echo "TARGET_IP: $TARGET_IP"
     while true; do
         sleep 6
-        echo "Must install the following software on Windows 10"
+        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
     done
-} # install_necessary_software
+}
 copy_necessary_files () {
     mkdir -p ./necessary-files/
     touch ./necessary-files/empty.txt
