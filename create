@@ -1,8 +1,6 @@
 #!/bin/bash
 
 # remove vm windows-ssh-rdp-ready
-VBoxManage controlvm windows-ssh-rdp-ready poweroff || true
-VBoxManage unregistervm windows-ssh-rdp-ready --delete || true
 grep avx2 /proc/cpuinfo || {
     echo "CPU does not support AVX"
     exit 0
@@ -153,6 +151,8 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_necessary_software () {
+    TARGET_IP=`get_vm_ip "windows-with-necessary-files" 2>/dev/null`
+    echo "TARGET_IP: $TARGET_IP"
     while true; do
         sleep 6
         echo "Must install the following software on Windows 10"
@@ -168,14 +168,17 @@ copy_necessary_files () {
     fi
     ssh-keygen -R $TARGET_IP || true
     ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+    Node_msi="./necessary-files/node-v20.11.0-x64.msi"
+    stat "$Node_msi" || wget -O "$Node_msi" "https://nodejs.org/dist/latest-iron/node-v20.11.0-x64.msi"
+    ChromeSetup_exe="./necessary-files/ChromeSetup.exe"
+    stat "$ChromeSetup_exe" || wget -O "$ChromeSetup_exe" "https://dl.google.com/chrome/install/stable/chrome_installer.exe"
+    Git_exe="./necessary-files/Git-2.43.0-64-bit.exe"
+    stat "$Git_exe" || wget -O "$Git_exe" "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
+
+
     find ./necessary-files/ -type f | while read file; do
         echo "Copy $file to $TARGET_IP"
-        ssh -i /root/id_rsa $TARGET_IP powershell -Command "New-Item -Path C:/Users/root/Desktop/$(dirname $file) -ItemType Directory -Force" || true
         scp -i /root/id_rsa $file $TARGET_IP:C:/Users/root/Desktop/
-    done
-    while true; do
-        sleep 6
-        echo "Must install the following software on Windows 10"
     done
 }
 
