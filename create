@@ -164,6 +164,10 @@ install_all_necessary_software () {
     while true; do
         sleep 6
         echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
+        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
+        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
+            break
+        fi
     done
 }
 install_necessary_software () {
