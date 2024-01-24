@@ -24,11 +24,9 @@ stat "$Git_exe" || wget -O "$Git_exe" "https://github.com/git-for-windows/git/re
 WINDOWS_ISO_PATH="/root/windows.iso"
 get_ip_addresses_on_lan() {
     EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`
-    EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
-    EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
-    EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
-    EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
-    EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
+    for i in {1..10}; do
+        EXISTS_IPs=`./pic list-ip-addresses | tr '\n' ' '`" $EXISTS_IPs"
+    done
     EXISTS_IPs=`echo $EXISTS_IPs | tr ' ' '\n' | sort -u | tr '\n' ' '`
 
     echo "$EXISTS_IPs"
