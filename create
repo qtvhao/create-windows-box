@@ -230,6 +230,8 @@ for phase in "${build_phases[@]}"; do
         VBoxManage controlvm "$box2" poweroff || true
         VBoxManage unregistervm "$box2" --delete || true
         echo "Clone $box1-marked-as-done to $box2"
+        VBoxManage controlvm "$box2" poweroff || true
+        VBoxManage unregistervm "$box2" --delete || true
         VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
         continue;
     fi
@@ -241,6 +243,8 @@ for phase in "${build_phases[@]}"; do
         $function_to_call
         VBoxManage controlvm "$box1" poweroff || true
         echo "Mark $box1 as done"
+        VBoxManage controlvm "$box2" poweroff || true
+        VBoxManage unregistervm "$box2" --delete || true
         VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
         VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
     fi
