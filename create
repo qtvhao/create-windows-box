@@ -7,10 +7,19 @@ grep avx2 /proc/cpuinfo || {
 }
 chmod +x pic || curl https://raw.githubusercontent.com/qtvhao/picloud/main/pic -o pic && chmod +x pic
 set -xeo pipefail
+mkdir -p /root/Provision/create-windows-box/
+cd /root/Provision/create-windows-box/
 
-build_phase3() {
-  echo "phase3"
-}
+mkdir -p ./necessary-files/
+Node_msi="./necessary-files/node-v20.11.0-x64.msi"
+stat "$Node_msi" || wget -O "$Node_msi" "https://nodejs.org/dist/latest-iron/node-v20.11.0-x64.msi"
+
+ChromeSetup_exe="./necessary-files/ChromeSetup.exe"
+stat "$ChromeSetup_exe" || wget -O "$ChromeSetup_exe" "https://dl.google.com/chrome/install/stable/chrome_installer.exe"
+
+Git_exe="./necessary-files/Git-2.43.0-64-bit.exe"
+stat "$Git_exe" || wget -O "$Git_exe" "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
+
 
 WINDOWS_ISO_PATH="/root/windows.iso"
 get_ip_addresses_on_lan() {
@@ -54,7 +63,7 @@ get_vm_ip() {
         sleep 8
         echo `get_vm_ip "$VM"`
     else
-        ssh-keygen -R $TARGET_IP || true
+        ssh-keygen -R $TARGET_IP >&2 || true
         ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
 
         echo "$NEW_IP_ADDRESS"
@@ -168,13 +177,6 @@ copy_necessary_files () {
     fi
     ssh-keygen -R $TARGET_IP || true
     ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
-    Node_msi="./necessary-files/node-v20.11.0-x64.msi"
-    stat "$Node_msi" || wget -O "$Node_msi" "https://nodejs.org/dist/latest-iron/node-v20.11.0-x64.msi"
-    ChromeSetup_exe="./necessary-files/ChromeSetup.exe"
-    stat "$ChromeSetup_exe" || wget -O "$ChromeSetup_exe" "https://dl.google.com/chrome/install/stable/chrome_installer.exe"
-    Git_exe="./necessary-files/Git-2.43.0-64-bit.exe"
-    stat "$Git_exe" || wget -O "$Git_exe" "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
-
 
     find ./necessary-files/ -type f | while read file; do
         echo "Copy $file to $TARGET_IP"
