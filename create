@@ -287,6 +287,7 @@ for phase in "${build_phases[@]}"; do
 done
 echo "Install Windows 10 finished"
 
-NEW_IP_ADDRESS=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
+NEW_IP_ADDRESS=`get_vm_ip "windows-with-all-necessary-software-2" 2>/dev/null`
 echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
 echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
+echo "==== ===== ============ ========="
