@@ -184,6 +184,7 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_all_necessary_software_2 () {
+    TARGET_IP=`get_vm_ip "windows-with-all-necessary-software-2" 2>/dev/null`
     while true; do
         sleep 6
         echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
