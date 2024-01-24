@@ -157,7 +157,41 @@ install_rdp_server() {
     timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || \
     timeout 5 ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-NetAdapterAdvancedProperty $Adapter_Name -DisplayName 'Large Send Offload (IPv4)' -DisplayValue Disabled" || true
 
+    # stop all updates on Windows 10
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'NoAutoUpdate' -Value 1" # disable auto update
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'AUOptions' -Value 2" # notify download and notify install
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'ScheduledInstallDay' -Value 0" # every day
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'ScheduledInstallTime' -Value 3" # 3am
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' -Name 'UseWUServer' -Value 0" # use Microsoft update server
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdates' -Value 1" # defer feature updates
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferFeatureUpdatesPeriodInDays' -Value 365" # defer feature updates
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdates' -Value 1" # defer quality updates
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate' -Name 'DeferQualityUpdatesPeriodInDays' -Value 365" # defer quality updates
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Gwx' -Name 'DisableGwx' -Value 1" # disable get windows 10
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MRT' -Name 'DontOfferThroughWUAU' -Value 1" # disable malware removal tool
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -Value 1" # disable windows defender
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet' -Name 'SpyNetReporting' -Value 0" # disable windows defender
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet' -Name 'SubmitSamplesConsent' -Value 2" # disable windows defender
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet' -Name 'DontReportInfectionInformation' -Value 1" # disable windows defender
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\MRT' -Name 'DontOfferThroughWUAU' -Value 1" # disable malware removal tool
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name 'AUOptions' -Value 2" # notify download and notify install
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name 'AUState' -Value 7" # notify download and notify install
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name 'ScheduledInstallDay' -Value 0" # every day
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name 'ScheduledInstallTime' -Value 3" # 3am
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update' -Name 'IncludeRecommendedUpdates' -Value 0" # do not include recommended updates
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\UAS' -Name 'IsConvergedUpdateStackEnabled' -Value 0" # disable windows update stack
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings' -Name 'UxOption' -Value 2" # notify download and notify install
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
+}
+install_all_necessary_software_2 () {
+    while true; do
+        sleep 6
+        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
+        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-all-necessary-software-2" | grep "State:" | grep "powered off" | wc -l` || true
+        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
+            break
+        fi
+    done
 }
 install_all_necessary_software () {
     TARGET_IP=`get_vm_ip "windows-with-necessary-software" 2>/dev/null`
@@ -208,6 +242,7 @@ build_phases=(
   "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
   "windows-ssh-rdp-ready install_necessary_software windows-with-necessary-software"
   "windows-with-necessary-software install_all_necessary_software windows-with-all-necessary-software"
+  "windows-with-all-necessary-software install_all_necessary_software_2 windows-with-all-necessary-software-2"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
