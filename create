@@ -160,8 +160,24 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_necessary_software () {
-    TARGET_IP=`get_vm_ip "windows-with-necessary-files" 2>/dev/null`
+    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
     echo "TARGET_IP: $TARGET_IP"
+    if [ -z "$TARGET_IP" ]; then
+        echo "TARGET_IP is not set"
+        exit 1
+    fi
+    ssh-keygen -R "$TARGET_IP" || true
+    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+    DESKTOP_LOCATION="C:/Users/root/Desktop"
+    copy_necessary_files $TARGET_IP
+    # scp -i /root/id_rsa ./necessary-files/ChromeSetup.exe $TARGET_IP:$DESKTOP_LOCATION/
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/ChromeSetup.exe -ArgumentList '/silent /install' -Wait"
+    # scp -i /root/id_rsa ./necessary-files/node-v20.11.0-x64.msi $TARGET_IP:$DESKTOP_LOCATION/
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/node-v20.11.0-x64.msi -ArgumentList '/quiet /norestart' -Wait"
+    # scp -i /root/id_rsa ./necessary-files/Git-2.43.0-64-bit.exe $TARGET_IP:$DESKTOP_LOCATION/
+    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\\"" -Wait"
+
+    TARGET_IP=`get_vm_ip "windows-with-necessary-files" 2>/dev/null`
     while true; do
         sleep 6
         echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
@@ -170,13 +186,7 @@ install_necessary_software () {
 copy_necessary_files () {
     mkdir -p ./necessary-files/
     touch ./necessary-files/empty.txt
-    TARGET_IP=`get_vm_ip "windows-ssh-rdp-ready" 2>/dev/null`
-    if [ -z "$TARGET_IP" ]; then
-        echo "TARGET_IP is not set"
-        exit 1
-    fi
-    ssh-keygen -R $TARGET_IP || true
-    ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+    TARGET_IP=$1
 
     find ./necessary-files/ -type f | while read file; do
         echo "Copy $file to $TARGET_IP"
@@ -188,8 +198,7 @@ build_phases=(
   "empty-box install_windows windows-installed"
   "windows-installed install_ssh_server windows-ssh-ready"
   "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
-  "windows-ssh-rdp-ready copy_necessary_files windows-with-necessary-files"
-  "windows-with-necessary-files install_necessary_software windows-with-necessary-software"
+  "windows-ssh-rdp-ready install_necessary_software windows-with-necessary-software"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
