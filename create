@@ -56,13 +56,15 @@ get_vm_ip() {
         done
     done
 
-    touch /root/.ssh/known_hosts
     if [ -z "$NEW_IP_ADDRESS" ]; then
+        echo "NEW_IP_ADDRESS is not set" >&2
         sleep 8
         echo `get_vm_ip "$VM"`
     else
-        ssh-keygen -R $NEW_IP_ADDRESS >&2 || true
-        ssh-keyscan $NEW_IP_ADDRESS >> /root/.ssh/known_hosts
+        touch /root/.ssh/known_hosts
+        echo "NEW_IP_ADDRESS is set" >&2
+        ssh-keygen -R "$NEW_IP_ADDRESS" >&2 || true
+        ssh-keyscan "$NEW_IP_ADDRESS" >> /root/.ssh/known_hosts
 
         echo "$NEW_IP_ADDRESS"
     fi
