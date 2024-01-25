@@ -61,8 +61,8 @@ get_vm_ip() {
         sleep 8
         echo `get_vm_ip "$VM"`
     else
-        ssh-keygen -R $TARGET_IP >&2 || true
-        ssh-keyscan $TARGET_IP >> /root/.ssh/known_hosts
+        ssh-keygen -R $NEW_IP_ADDRESS >&2 || true
+        ssh-keyscan $NEW_IP_ADDRESS >> /root/.ssh/known_hosts
 
         echo "$NEW_IP_ADDRESS"
     fi

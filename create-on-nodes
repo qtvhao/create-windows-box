@@ -19,5 +19,5 @@ for node in $NODES; do
 
   scp -o StrictHostKeyChecking=no -i $IDENTITY_FILE create $node:~/
   ssh -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node "chmod +x create"
-  ssh -t -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node "./create"
+  ssh -t -o StrictHostKeyChecking=no -i $IDENTITY_FILE $node "./create || exit 1"
 done
