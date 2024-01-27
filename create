@@ -5,6 +5,13 @@ grep avx2 /proc/cpuinfo >/dev/null || {
     echo "CPU does not support AVX"
     exit 0
 }
+# check if service xrdp is running
+systemctl status xrdp | grep "Active: active (running)" || {
+    echo "xrdp is not running"
+    apt update
+    apt install -y xrdp
+    exit 0
+}
 chmod +x pic || curl https://raw.githubusercontent.com/qtvhao/picloud/main/pic -o pic && chmod +x pic
 set -xeo pipefail
 mkdir -p /root/Provision/create-windows-box/
@@ -90,6 +97,9 @@ install_ssh_server() {
     ssh -i /root/id_rsa $TARGET_IP "icacls C:/ProgramData/ssh/administrators_authorized_keys /inheritance:r && icacls C:/ProgramData/ssh/administrators_authorized_keys /grant SYSTEM:(F) && icacls C:/ProgramData/ssh/administrators_authorized_keys /grant BUILTIN\Administrators:(F) && icacls C:/ProgramData/ssh/administrators_authorized_keys && net stop sshd && net start sshd"
 }
 install_windows() {
+    VBoxManage controlvm "empty-box" acpipowerbutton || true
+    VBoxManage controlvm "empty-box" poweroff || true
+    VBoxManage unregistervm "empty-box" --delete || true
     echo "Creating empty box for Windows"
     VBoxManage createvm --name "empty-box" --ostype "Windows10_64" --register
     VBoxManage modifyvm "empty-box" --memory 8192 --cpus 2
@@ -307,14 +317,14 @@ if [ "x$COUNT_EMPTY_BOX" == "x0" ]; then
 fi
 build_phases=(
   "empty-box install_windows windows-installed"
-  "windows-installed install_ssh_server windows-ssh-ready"
-  "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
-  "windows-ssh-rdp-ready install_necessary_software windows-with-necessary-software"
-  "windows-with-necessary-software install_all_necessary_software windows-with-all-necessary-software"
-  "windows-with-all-necessary-software install_all_necessary_software_2 windows-with-all-necessary-software-2"
-  "windows-with-all-necessary-software-2 snapshot_do_nothing windows-with-all-necessary-software-3"
-  "windows-with-all-necessary-software-3 disable_defender windows-with-all-necessary-software-4"
-  "windows-with-all-necessary-software-4 snapshot_do_nothing windows-with-all-necessary-software-5"
+"windows-installed install_ssh_server windows-ssh-ready"
+"windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
+"windows-ssh-rdp-ready install_necessary_software windows-with-necessary-software"
+"windows-with-necessary-software install_all_necessary_software windows-with-all-necessary-software"
+"windows-with-all-necessary-software install_all_necessary_software_2 windows-with-all-necessary-software-2"
+"windows-with-all-necessary-software-2 snapshot_do_nothing windows-with-all-necessary-software-3"
+"windows-with-all-necessary-software-3 disable_defender windows-with-all-necessary-software-4"
+"windows-with-all-necessary-software-4 snapshot_do_nothing windows-with-all-necessary-software-5"
 )
 for phase in "${build_phases[@]}"; do
     box1=`echo $phase | awk '{print $1}'`
