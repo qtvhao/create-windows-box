@@ -316,7 +316,7 @@ if [ "x$COUNT_EMPTY_BOX" == "x0" ]; then
         exit 1
     }
     # create empty-box VM
-    install_windows
+    VBoxManage createvm --name "empty-box" --ostype "Windows10_64" --register
 fi
 build_phases=(
   "empty-box install_windows windows-installed"
