@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # remove vm windows-ssh-rdp-ready
-grep avx2 /proc/cpuinfo || {
+grep avx2 /proc/cpuinfo >/dev/null || {
     echo "CPU does not support AVX"
     exit 0
 }
@@ -12,14 +12,13 @@ cd /root/Provision/create-windows-box/
 
 mkdir -p ./necessary-files/
 Node_msi="./necessary-files/node-v20.11.0-x64.msi"
-stat "$Node_msi" || wget -O "$Node_msi" "https://nodejs.org/dist/latest-iron/node-v20.11.0-x64.msi"
+stat "$Node_msi">/dev/null || wget -O "$Node_msi" "https://nodejs.org/dist/latest-iron/node-v20.11.0-x64.msi"
 
 ChromeSetup_exe="./necessary-files/ChromeSetup.exe"
-stat "$ChromeSetup_exe" || wget -O "$ChromeSetup_exe" "https://dl.google.com/chrome/install/stable/chrome_installer.exe"
+stat "$ChromeSetup_exe">/dev/null || wget -O "$ChromeSetup_exe" "https://dl.google.com/chrome/install/stable/chrome_installer.exe"
 
 Git_exe="./necessary-files/Git-2.43.0-64-bit.exe"
-stat "$Git_exe" || wget -O "$Git_exe" "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
-
+stat "$Git_exe">/dev/null || wget -O "$Git_exe" "https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/Git-2.43.0-64-bit.exe"
 
 WINDOWS_ISO_PATH="/root/windows.iso"
 get_ip_addresses_on_lan() {
@@ -251,6 +250,54 @@ snapshot_do_nothing () {
     echo "Do nothing"
 }
 
+USING_DISK=`df -h | grep "/" | grep "/dev/sd" | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0-9]//g' | head -n 1`
+echo "USING_DISK: $USING_DISK"
+DISKS=`lsblk -o NAME,SIZE -b -d -n | grep "sd" | grep -v "$USING_DISK" | awk '{print $1" "$2}'`
+echo "DISKS: $DISKS"
+BYTES_800_GB=858993459200
+DISK_more_than_1TiB=`echo "$DISKS" | awk '$2 > '$BYTES_800_GB' {print $1}'`
+if [ -z "$DISK_more_than_1TiB" ]; then
+    echo "DISK_more_than_1TiB is not set"
+    exit 1
+fi
+echo "DISK_1TiB: $DISK_more_than_1TiB"
+
+# format disk, create partition, create filesystem
+DISK_TO_FORMAT=$DISK_more_than_1TiB
+if [ -z "$DISK_TO_FORMAT" ]; then
+    echo "DISK_TO_FORMAT is not set"
+    exit 1
+fi
+echo "DISK_TO_FORMAT: $DISK_TO_FORMAT"
+echo "Format disk $DISK_TO_FORMAT use parted"
+parted -s /dev/$DISK_TO_FORMAT mklabel gpt
+parted -s /dev/$DISK_TO_FORMAT mkpart primary 0% 100%
+parted -s /dev/$DISK_TO_FORMAT set 1 lvm on
+parted -s /dev/$DISK_TO_FORMAT print
+echo "Create physical volume"
+pvcreate /dev/$DISK_TO_FORMAT
+echo "Create volume group"
+vgcreate vg1 /dev/$DISK_TO_FORMAT
+echo "Create logical volume"
+lvcreate -l 100%FREE -n lv1 vg1
+echo "Create filesystem"
+mkfs.ext4 /dev/vg1/lv1
+echo "Mount filesystem"
+mkdir -p /mnt/vg1/lv1
+mount /dev/vg1/lv1 /mnt/vg1/lv1
+
+
+exit 0
+COUNT_EMPTY_BOX=`VBoxManage list vms | grep "empty-box" | wc -l` || true
+if [ "x$COUNT_EMPTY_BOX" == "x0" ]; then
+    echo "empty-box does not exist"
+    WINDOWS_ISO_PATH=`find /root/ -name "windows.iso" | head -n 1`
+    stat "$WINDOWS_ISO_PATH" || {
+        echo "Windows ISO file not found"
+        exit 1
+    }
+    # create empty-box VM
+fi
 build_phases=(
   "empty-box install_windows windows-installed"
   "windows-installed install_ssh_server windows-ssh-ready"
