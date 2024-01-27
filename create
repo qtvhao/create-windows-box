@@ -250,42 +250,47 @@ snapshot_do_nothing () {
     echo "Do nothing"
 }
 
-USING_DISK=`df -h | grep "/" | grep "/dev/sd" | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0-9]//g' | head -n 1`
-echo "USING_DISK: $USING_DISK"
-DISKS=`lsblk -o NAME,SIZE -b -d -n | grep "sd" | grep -v "$USING_DISK" | awk '{print $1" "$2}'`
-echo "DISKS: $DISKS"
-BYTES_800_GB=858993459200
-DISK_more_than_1TiB=`echo "$DISKS" | awk '$2 > '$BYTES_800_GB' {print $1}'`
-if [ -z "$DISK_more_than_1TiB" ]; then
-    echo "DISK_more_than_1TiB is not set"
-    exit 1
-fi
-echo "DISK_1TiB: $DISK_more_than_1TiB"
+VIRTUALBOX_VMS_PATH=`VBoxManage list systemproperties | grep "Default machine folder" | awk '{print $4}'`
+echo "Check if $VIRTUALBOX_VMS_PATH mounted"
+lsblk -o NAME,SIZE,MOUNTPOINT | grep "$VIRTUALBOX_VMS_PATH" || {
+    echo "$VIRTUALBOX_VMS_PATH is not mounted"
+    USING_DISK=`df -h | grep "/" | grep "/dev/sd" | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0-9]//g' | head -n 1`
+    echo "USING_DISK: $USING_DISK"
+    DISKS=`lsblk -o NAME,SIZE -b -d -n | grep "sd" | grep -v "$USING_DISK" | awk '{print $1" "$2}'`
+    echo "DISKS: $DISKS"
+    BYTES_800_GB=858993459200
+    DISK_more_than_1TiB=`echo "$DISKS" | awk '$2 > '$BYTES_800_GB' {print $1}'`
+    if [ -z "$DISK_more_than_1TiB" ]; then
+        echo "DISK_more_than_1TiB is not set"
+        exit 1
+    fi
+    echo "DISK_1TiB: $DISK_more_than_1TiB"
 
-# format disk, create partition, create filesystem
-DISK_TO_FORMAT=$DISK_more_than_1TiB
-if [ -z "$DISK_TO_FORMAT" ]; then
-    echo "DISK_TO_FORMAT is not set"
-    exit 1
-fi
-echo "DISK_TO_FORMAT: $DISK_TO_FORMAT"
-echo "Format disk $DISK_TO_FORMAT use parted"
-parted -s /dev/$DISK_TO_FORMAT mklabel gpt
-parted -s /dev/$DISK_TO_FORMAT mkpart primary 0% 100%
-parted -s /dev/$DISK_TO_FORMAT set 1 lvm on
-parted -s /dev/$DISK_TO_FORMAT print
-echo "Create physical volume"
-pvcreate /dev/$DISK_TO_FORMAT
-echo "Create volume group"
-vgcreate vg1 /dev/$DISK_TO_FORMAT
-echo "Create logical volume"
-lvcreate -l 100%FREE -n lv1 vg1
-echo "Create filesystem"
-mkfs.ext4 /dev/vg1/lv1
-echo "Mount filesystem"
-mkdir -p /mnt/vg1/lv1
-mount /dev/vg1/lv1 /mnt/vg1/lv1
+    # format disk, create partition, create filesystem
+    DISK_TO_FORMAT=$DISK_more_than_1TiB
+    if [ -z "$DISK_TO_FORMAT" ]; then
+        echo "DISK_TO_FORMAT is not set"
+        exit 1
+    fi
+    echo "DISK_TO_FORMAT: $DISK_TO_FORMAT"
+    echo "Format disk $DISK_TO_FORMAT use parted"
+    parted -s /dev/$DISK_TO_FORMAT mklabel gpt
+    parted -s /dev/$DISK_TO_FORMAT mkpart primary 0% 100%
+    parted -s /dev/$DISK_TO_FORMAT set 1 lvm on
+    parted -s /dev/$DISK_TO_FORMAT print
 
+    echo "Create filesystem ext4 on /dev/${DISK_TO_FORMAT}1"
+    mkfs.ext4 /dev/${DISK_TO_FORMAT}1
+
+    mkdir -p $VIRTUALBOX_VMS_PATH
+
+    mount /dev/${DISK_TO_FORMAT}1 $VIRTUALBOX_VMS_PATH
+    echo "/dev/${DISK_TO_FORMAT}1 $VIRTUALBOX_VMS_PATH ext4 defaults 0 0" >> /etc/fstab
+    echo "Mount disk $DISK_TO_FORMAT to $VIRTUALBOX_VMS_PATH"
+    exit 1
+}
+echo "$VIRTUALBOX_VMS_PATH is mounted"
+exit 0
 
 exit 0
 COUNT_EMPTY_BOX=`VBoxManage list vms | grep "empty-box" | wc -l` || true
