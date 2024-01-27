@@ -77,9 +77,9 @@ get_vm_ip() {
 
 }
 install_ssh_server() {
-    VBoxManage clonevm empty-box-marked-as-done --name windows-installed --register
-    echo "Installing SSH server"
-    VBoxManage startvm "windows-installed" --type headless
+    hostnameI=`hostname -I | tr ' ' '\n' | grep "192" | head -n 1`
+    HOST_PASSWORD=`cat /root/rdp_password.txt`
+    echo "Connect to $hostnameI:3389 with username: root, password: $HOST_PASSWORD and install the SSH server on Windows, then turn off the Windows 10 VM"
 
     TARGET_IP=`get_vm_ip "windows-installed" 2>/dev/null`
     echo "TARGET_IP: $TARGET_IP"
