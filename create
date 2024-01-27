@@ -273,26 +273,29 @@ lsblk -o NAME,SIZE,MOUNTPOINT | grep "$VIRTUALBOX_VMS_PATH" || {
         exit 1
     fi
     echo "DISK_TO_FORMAT: $DISK_TO_FORMAT"
-    echo "Format disk $DISK_TO_FORMAT use parted"
+    # 
     parted -s /dev/$DISK_TO_FORMAT mklabel gpt
-    parted -s /dev/$DISK_TO_FORMAT mkpart primary 0% 100%
-    parted -s /dev/$DISK_TO_FORMAT set 1 lvm on
-    parted -s /dev/$DISK_TO_FORMAT print
+    echo "Create 2 partitions on /dev/$DISK_TO_FORMAT with 1TiB and 2TiB"
+    echo "Create 1st partition on /dev/$DISK_TO_FORMAT with 1TiB"
+    parted -s /dev/$DISK_TO_FORMAT mkpart primary 0% 1TiB
+    echo "Create 2nd partition on /dev/$DISK_TO_FORMAT with 2TiB"
+    parted -s /dev/$DISK_TO_FORMAT mkpart primary 1TiB 3TiB
 
     echo "Create filesystem ext4 on /dev/${DISK_TO_FORMAT}1"
-    mkfs.ext4 /dev/${DISK_TO_FORMAT}1
+    mkfs.ext4 /dev/${DISK_TO_FORMAT}1 -F
+    echo "Create filesystem ext4 on /dev/${DISK_TO_FORMAT}2"
+    mkfs.ext4 /dev/${DISK_TO_FORMAT}2 -F
+    
 
     mkdir -p $VIRTUALBOX_VMS_PATH
-
     mount /dev/${DISK_TO_FORMAT}1 $VIRTUALBOX_VMS_PATH
+    sed -i "/\/dev\/${DISK_TO_FORMAT}1/d" /etc/fstab
     echo "/dev/${DISK_TO_FORMAT}1 $VIRTUALBOX_VMS_PATH ext4 defaults 0 0" >> /etc/fstab
     echo "Mount disk $DISK_TO_FORMAT to $VIRTUALBOX_VMS_PATH"
     exit 1
 }
 echo "$VIRTUALBOX_VMS_PATH is mounted"
-exit 0
 
-exit 0
 COUNT_EMPTY_BOX=`VBoxManage list vms | grep "empty-box" | wc -l` || true
 if [ "x$COUNT_EMPTY_BOX" == "x0" ]; then
     echo "empty-box does not exist"
