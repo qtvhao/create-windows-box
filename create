@@ -77,6 +77,7 @@ get_vm_ip() {
 
 }
 install_ssh_server() {
+    ssh-keygen -y -f /root/id_rsa > /root/id_rsa.pub
     hostnameI=`hostname -I | tr ' ' '\n' | grep "192" | head -n 1`
     HOST_PASSWORD=`cat /root/rdp_password.txt`
     echo "Connect to $hostnameI:3389 with username: root, password: $HOST_PASSWORD and install the SSH server on Windows, then turn off the Windows 10 VM"
