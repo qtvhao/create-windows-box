@@ -292,7 +292,6 @@ lsblk -o NAME,SIZE,MOUNTPOINT | grep "$VIRTUALBOX_VMS_PATH" || {
     sed -i "/\/dev\/${DISK_TO_FORMAT}1/d" /etc/fstab
     echo "/dev/${DISK_TO_FORMAT}1 $VIRTUALBOX_VMS_PATH ext4 defaults 0 0" >> /etc/fstab
     echo "Mount disk $DISK_TO_FORMAT to $VIRTUALBOX_VMS_PATH"
-    exit 1
 }
 echo "$VIRTUALBOX_VMS_PATH is mounted"
 
