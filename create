@@ -260,6 +260,8 @@ snapshot_do_nothing () {
     echo "Do nothing"
 }
 
+echo "Setting default machine folder to /root/VirtualBox_VMs"
+VBoxManage setproperty machinefolder /root/VirtualBox_VMs
 VIRTUALBOX_VMS_PATH=`VBoxManage list systemproperties | grep "Default machine folder" | sed 's/Default machine folder://' | sed 's/^[[:space:]]*//'`
 echo "Check if $VIRTUALBOX_VMS_PATH mounted"
 lsblk -o NAME,SIZE,MOUNTPOINT | grep "$VIRTUALBOX_VMS_PATH" || {
