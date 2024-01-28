@@ -381,9 +381,17 @@ for phase in "${build_phases[@]}"; do
         VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
     fi
 done
+
+mkdir -p /root/VB_VMs
+WINDOWS_INSTANCE_NAME="windows-with-all-necessary-software-5"
+VBoxManage controlvm "$WINDOWS_INSTANCE_NAME" poweroff || true
+VBoxManage controlvm "$WINDOWS_INSTANCE_NAME-clone-1" poweroff || true
+VBoxManage unregistervm "$WINDOWS_INSTANCE_NAME-clone-1" --delete || true
+time VBoxManage clonevm "$WINDOWS_INSTANCE_NAME" --name "$WINDOWS_INSTANCE_NAME-clone-1" --register --basefolder /root/VB_VMs
+
 echo "Install Windows 10 finished"
 
-NEW_IP_ADDRESS=`get_vm_ip "windows-with-all-necessary-software-2" 2>/dev/null`
+NEW_IP_ADDRESS=`get_vm_ip "$WINDOWS_INSTANCE_NAME-clone-1" 2>/dev/null`
 echo "You can connect to the VM with the following command: ssh -i /root/id_rsa root@$NEW_IP_ADDRESS"
 echo "RDP is available on $NEW_IP_ADDRESS:3389 with username: root"
 echo "==== ===== ============ ========="
