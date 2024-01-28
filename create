@@ -386,7 +386,13 @@ mkdir -p /root/VB_VMs
 WINDOWS_INSTANCE_NAME="windows-with-all-necessary-software-5"
 VBoxManage controlvm "$WINDOWS_INSTANCE_NAME" poweroff || true
 VBoxManage controlvm "$WINDOWS_INSTANCE_NAME-clone-1" poweroff || true
-VBoxManage unregistervm "$WINDOWS_INSTANCE_NAME-clone-1" --delete || true
+while true; do
+    VBoxManage unregistervm "$WINDOWS_INSTANCE_NAME-clone-1" --delete || true
+    SETTINGS_FILE="/root/VB_VMs/$WINDOWS_INSTANCE_NAME-clone-1/$WINDOWS_INSTANCE_NAME-clone-1.vbox"
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        break
+    fi
+done
 time VBoxManage clonevm "$WINDOWS_INSTANCE_NAME" --name "$WINDOWS_INSTANCE_NAME-clone-1" --register --basefolder /root/VB_VMs
 
 echo "Install Windows 10 finished"
