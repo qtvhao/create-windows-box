@@ -212,6 +212,16 @@ install_all_necessary_software_2 () {
             break
         fi
     done
+        while true; do
+        sleep 8
+        echo "Waiting for git to be installed on $TARGET_IP"
+        ssh -i /root/id_rsa $TARGET_IP powershell -Command "git --version" && break || true
+    done
+    while true; do
+        sleep 8
+        echo "Waiting for nodejs to be installed on $TARGET_IP"
+        ssh -i /root/id_rsa $TARGET_IP powershell -Command "node --version" && break || true
+    done
 }
 install_all_necessary_software () {
     TARGET_IP=`get_vm_ip "windows-with-necessary-software" 2>/dev/null`
@@ -243,16 +253,6 @@ install_necessary_software () {
     # ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\\"" -Wait"
     ssh -i /root/id_rsa $TARGET_IP powershell \
         -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\"' -Wait"
-    while true; do
-        sleep 8
-        echo "Waiting for git to be installed on $TARGET_IP"
-        ssh -i /root/id_rsa $TARGET_IP powershell -Command "git --version" && break || true
-    done
-    while true; do
-        sleep 8
-        echo "Waiting for nodejs to be installed on $TARGET_IP"
-        ssh -i /root/id_rsa $TARGET_IP powershell -Command "node --version" && break || true
-    done
 }
 copy_necessary_files () {
     mkdir -p ./necessary-files/
