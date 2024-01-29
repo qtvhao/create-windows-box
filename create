@@ -203,6 +203,8 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_all_necessary_software_2 () {
+    VBoxManage modifyvm "windows-with-all-necessary-software" --nic2 nat --natpf2 delete "rdp" || true
+    VBoxManage modifyvm "windows-with-all-necessary-software" --nic2 nat --natpf2 "rdp,tcp,,3369,,3389"
     TARGET_IP=`get_vm_ip "windows-with-all-necessary-software" 2>/dev/null`
     while true; do
         sleep 8
@@ -248,11 +250,11 @@ install_necessary_software () {
     # scp -i /root/id_rsa ./necessary-files/ChromeSetup.exe $TARGET_IP:$DESKTOP_LOCATION/
     ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/ChromeSetup.exe -ArgumentList '/silent /install' -Wait"
     # scp -i /root/id_rsa ./necessary-files/node-v20.11.0-x64.msi $TARGET_IP:$DESKTOP_LOCATION/
-    ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/node-v20.11.0-x64.msi -ArgumentList '/quiet /norestart' -Wait"
+    # ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/node-v20.11.0-x64.msi -ArgumentList '/quiet /norestart' -Wait"
     # scp -i /root/id_rsa ./necessary-files/Git-2.43.0-64-bit.exe $TARGET_IP:$DESKTOP_LOCATION/
     # ssh -i /root/id_rsa $TARGET_IP powershell -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\\"" -Wait"
-    ssh -i /root/id_rsa $TARGET_IP powershell \
-        -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\"' -Wait"
+    # ssh -i /root/id_rsa $TARGET_IP powershell \
+        # -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\"' -Wait"
 }
 copy_necessary_files () {
     mkdir -p ./necessary-files/
