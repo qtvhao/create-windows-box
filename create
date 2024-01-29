@@ -203,8 +203,6 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_all_necessary_software_2 () {
-    VBoxManage modifyvm "windows-with-all-necessary-software" --nic2 nat --natpf2 delete "rdp" || true
-    VBoxManage modifyvm "windows-with-all-necessary-software" --nic2 nat --natpf2 "rdp,tcp,,3369,,3389"
     TARGET_IP=`get_vm_ip "windows-with-all-necessary-software" 2>/dev/null`
     while true; do
         sleep 8
@@ -226,6 +224,9 @@ install_all_necessary_software_2 () {
     done
 }
 install_all_necessary_software () {
+    VBoxManage modifyvm "windows-with-necessary-software" --nic2 nat --natpf2 delete "rdp" || true
+    VBoxManage modifyvm "windows-with-necessary-software" --nic2 nat --natpf2 "rdp,tcp,,3369,,3389"
+
     TARGET_IP=`get_vm_ip "windows-with-necessary-software" 2>/dev/null`
     while true; do
         sleep 6
