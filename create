@@ -245,10 +245,12 @@ install_necessary_software () {
         -Command "Start-Process -FilePath $DESKTOP_LOCATION/Git-2.43.0-64-bit.exe -ArgumentList '/SILENT /NORESTART /COMPONENTS=\"icons,ext\"' -Wait"
     while true; do
         sleep 8
+        echo "Waiting for git to be installed on $TARGET_IP"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "git --version" && break || true
     done
     while true; do
         sleep 8
+        echo "Waiting for nodejs to be installed on $TARGET_IP"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "node --version" && break || true
     done
 }
