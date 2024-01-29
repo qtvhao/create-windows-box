@@ -205,14 +205,6 @@ install_rdp_server() {
 install_all_necessary_software_2 () {
     TARGET_IP=`get_vm_ip "windows-with-all-necessary-software" 2>/dev/null`
     while true; do
-        sleep 6
-        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
-        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-all-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
-        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
-            break
-        fi
-    done
-        while true; do
         sleep 8
         echo "Waiting for git to be installed on $TARGET_IP"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "git --version" && break || true
@@ -221,6 +213,14 @@ install_all_necessary_software_2 () {
         sleep 8
         echo "Waiting for nodejs to be installed on $TARGET_IP"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "node --version" && break || true
+    done
+    while true; do
+        sleep 6
+        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
+        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-all-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
+        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
+            break
+        fi
     done
 }
 install_all_necessary_software () {
