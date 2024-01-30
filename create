@@ -394,6 +394,11 @@ for phase in "${build_phases[@]}"; do
         echo "Mark $box1 as done"
         VBoxManage controlvm "$box2" poweroff || true
         VBoxManage unregistervm "$box2" --delete || true
+        VBoxManage controlvm "$box1-marked-as-done" poweroff || true
+        VBoxManage closemedium disk "/root/VirtualBox_VMs/$box1-marked-as-done/$box1-marked-as-done.vdi" --delete || true
+        VBoxManage unregistervm "$box1-marked-as-done" --delete || true
+        rm /root/VirtualBox_VMs/$box1-marked-as-done/$box1-marked-as-done.vdi || true
+        rm /root/VirtualBox_VMs/$box1-marked-as-done/$box1-marked-as-done.vbox || true
         VBoxManage clonevm "$box1" --name "$box1-marked-as-done" --register
         VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
     fi
