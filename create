@@ -226,14 +226,14 @@ install_all_necessary_software_2 () {
         fi
     done
 }
-install_all_necessary_software () {
+install_your_necessary_software () {
     VBoxManage modifyvm "windows-with-necessary-software" --nic2 nat --natpf2 delete "rdp" || true
     VBoxManage modifyvm "windows-with-necessary-software" --nic2 nat --natpf2 "rdp,tcp,,3369,,3389"
 
     TARGET_IP=`get_vm_ip "windows-with-necessary-software"`
     while true; do
         sleep 6
-        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
+        echo "Must install your softwares on Windows 10. IP address: $TARGET_IP"
         VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
         if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
             break
@@ -269,6 +269,18 @@ copy_necessary_files () {
         echo "Copy $file to $TARGET_IP"
         scp -i /root/id_rsa $file $TARGET_IP:C:/Users/root/Desktop/
     done
+}
+get_windows_updates () {
+    VBoxManage startvm "windows-with-all-necessary-software" --type headless || true
+    while true; do
+        echo "You must install all Windows updates on Windows 10"
+        sleep 6
+        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-all-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
+        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
+            break
+        fi
+    done
+
 }
 disable_defender () {
     VBoxManage startvm "windows-with-all-necessary-software-3" --type headless || true
@@ -348,9 +360,9 @@ build_phases=(
 "windows-installed install_ssh_server windows-ssh-ready"
 "windows-ssh-ready install_rdp_server windows-ssh-rdp-ready"
 "windows-ssh-rdp-ready install_necessary_software windows-with-necessary-software"
-"windows-with-necessary-software get_windows_update windows-updated"
-"windows-updated install_all_necessary_software windows-with-all-necessary-software"
-"windows-with-all-necessary-software install_all_necessary_software_2 windows-with-all-necessary-software-2"
+"windows-with-necessary-software install_your_necessary_software windows-with-all-necessary-software"
+"windows-with-all-necessary-software get_windows_updates windows-updated"
+"windows-updated install_all_necessary_software_2 windows-with-all-necessary-software-2"
 "windows-with-all-necessary-software-2 snapshot_do_nothing windows-with-all-necessary-software-3"
 "windows-with-all-necessary-software-3 disable_defender windows-with-all-necessary-software-4"
 "windows-with-all-necessary-software-4 snapshot_do_nothing windows-with-all-necessary-software-5"
