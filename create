@@ -209,22 +209,16 @@ install_all_necessary_software_2 () {
     TARGET_IP=`get_vm_ip "windows-updated" 2>/dev/null`
     while true; do
         sleep 8
-        echo "Waiting for git to be installed on $TARGET_IP"
+        echo "Waiting for git and nodejs to be installed on $TARGET_IP. You must reboot Windows 10 after installing git and nodejs"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "git --version" && break || true
     done
     while true; do
         sleep 8
-        echo "Waiting for nodejs to be installed on $TARGET_IP"
+        echo "Waiting for git and nodejs to be installed on $TARGET_IP. You must reboot Windows 10 after installing git and nodejs"
         ssh -i /root/id_rsa $TARGET_IP powershell -Command "node --version" && break || true
     done
-    while true; do
-        sleep 6
-        echo "Must install the following software on Windows 10. IP address: $TARGET_IP"
-        VM_IS_TURNED_OFF=`VBoxManage showvminfo "windows-with-all-necessary-software" | grep "State:" | grep "powered off" | wc -l` || true
-        if [ "x$VM_IS_TURNED_OFF" == "x1" ]; then
-            break
-        fi
-    done
+    # power off VM
+    VBoxManage controlvm "windows-updated" poweroff || true
 }
 install_your_necessary_software () {
     VBoxManage modifyvm "windows-with-necessary-software" --nic2 nat --natpf2 delete "rdp" || true
