@@ -206,7 +206,7 @@ install_rdp_server() {
     VBoxManage controlvm "windows-ssh-rdp-ready" poweroff || true
 }
 install_all_necessary_software_2 () {
-    TARGET_IP=`get_vm_ip "windows-with-all-necessary-software" 2>/dev/null`
+    TARGET_IP=`get_vm_ip "windows-updated" 2>/dev/null`
     while true; do
         sleep 8
         echo "Waiting for git to be installed on $TARGET_IP"
