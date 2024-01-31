@@ -388,6 +388,7 @@ for phase in "${build_phases[@]}"; do
         VBoxManage unregistervm "$box2" --delete || true
         VBoxManage closemedium disk "/root/VirtualBox_VMs/$box2/$box2.vdi" --delete || true
         rm /root/VirtualBox_VMs/$box2/$box2.vdi || true
+        rm /root/VirtualBox_VMs/$box2/$box2.vbox || true
         VBoxManage clonevm "$box1-marked-as-done" --name "$box2" --register
         continue;
     fi
