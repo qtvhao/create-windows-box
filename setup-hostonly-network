@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Now, to make the connection available both ways (accessing the windows host from the ubuntu guest) there's still one more step to be performed.
+# Windows will automatically add the virtualbox host-only network to the list of public networks and that cannot be changed. This entails that the firewall will prevent proper access.
+# To overcome this and not make any security breaches in your setup:
+# go to the windows firewall section, in control panel,
+# click on advanced settings. In the page that pops up,
+# click on inbound rules (left column), then on new rule (right column).
+# Chose custom rule, set the rule to allow all programs, and any protocol.
+# For the scope, add in the first box (local IP addresses) 192.168.56.1, and in the second box (remote IP) 192.168.56.56.
+# Click next, select allow the connection, next, check all profiles, next, give it a name and save.
+# That's it, now you have 2 way communication, with apache/any other service available as well as internet. The final step is to setup a share.
+# Do not use the shared folders feature in virtualbox, it's quite buggy especially with windows 7 (and 64 bit). Instead use samba shares - fast and efficient.
+
+RUNNING_VM=`VBoxManage list runningvms | awk '{print $1}' | sed 's/"//g'`
+if [ -z "$RUNNING_VM" ]; then
+    RUNNING_VM="$1"
+fi
+echo "Running VM: $RUNNING_VM"
+
+while true; do
+    VBoxManage controlvm "$RUNNING_VM" acpipowerbutton 2>/dev/null >/dev/null || true
+    VBoxManage showvminfo "$RUNNING_VM" | grep "State:" | grep "powered off" && break || true
+    sleep 8
+done
+# unset all NICs from VM
+for i in {1..8}; do
+    VBoxManage modifyvm "$RUNNING_VM" --nic$i none || true
+done
+
+set -xeo pipefail
+# Setup the virtualbox to use 2 adapters:
+
+echo "Add NAT NIC"
+# The first adapter is set to NAT (that will give you the internet connection).
+VBoxManage modifyvm "$RUNNING_VM" --nic1 nat
+# VBoxManage modifyvm "$RUNNING_VM" --natdnshostresolver1 on
+# virtio is the default NIC type for Ubuntu 18.04 and newer.
+# For Intel 1000/MT Server (82545EM) NIC type, use e1000.
+
+echo "Add Host-only NIC"
+# The second adapter is set to host only.
+VBoxManage modifyvm "$RUNNING_VM" --nic2 hostonly
+VBoxManage modifyvm "$RUNNING_VM" --hostonlyadapter2 vboxnet0
+
+# Start the virtual machine and assign a static IP for the second adapter in Ubuntu (for instance 192.168.56.56).
+# The host Windows will have 192.168.56.1 as IP for the internal network (VirtualBox Host-Only Network is the name in network connections in Windows).
+# What this will give you is being able to access the apache server on ubuntu, from windows, by going to 192.168.56.56.
+# Also, Ubuntu will have internet access, since the first adapter (set to NAT) will take care of that.
+VBoxManage startvm "$RUNNING_VM" --type headless
+# while true; do
+#     sleep 6
+#     VBoxManage guestproperty enumerate "$RUNNING_VM"
+#     # VBoxManage guestproperty enumerate "$RUNNING_VM" | grep IP | grep
+# done
+
+return_if_ip_is_pingable() {
+    IP_TO_CHECK=$1
+    ping -c 1 -W 1 $IP_TO_CHECK 2>/dev/null >/dev/null && echo "$IP_TO_CHECK" && return 0 || true
+}
+check_if_ip_is_pingable() {
+    ASSIGNED_IP=""
+    for i in {101..254}; do
+        # check if IP is pingable, if yes, then assign it to ASSIGNED_IP
+        return_if_ip_is_pingable "192.168.56.$i" && ASSIGNED_IP="192.168.56.$i" && break || true
+    done
+    echo "$ASSIGNED_IP"
+    if [ "x" = "x$ASSIGNED_IP" ]; then
+        return 1
+    fi
+    return 0
+}
+VM_ASSIGNED_IP=""
+while true; do
+    check_if_ip_is_pingable && break || true
+    sleep 2
+done
+VM_ASSIGNED_IP=`check_if_ip_is_pingable`
+
+echo "Assigned IP: $VM_ASSIGNED_IP"
+ssh-keygen -R "$VM_ASSIGNED_IP" || true
+while true; do
+    ssh-keyscan "$VM_ASSIGNED_IP" >> ~/.ssh/known_hosts && break || true
+    sleep 2
+done
+
+ssh -i /root/id_rsa $VM_ASSIGNED_IP "echo 'Hello from Windows VM'"
