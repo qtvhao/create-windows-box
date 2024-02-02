@@ -39,6 +39,14 @@ VBoxManage modifyvm "$RUNNING_VM" --nic1 nat
 # For Intel 1000/MT Server (82545EM) NIC type, use e1000.
 # Also, Ubuntu will have internet access, since the first adapter (set to NAT) will take care of that.
 
+#  6379    "redis,tcp,,6379,,6379" "nic2" "natpf2" "redis"
+# VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "redis,tcp,,6379,,6379"
+#  22      "ssh,tcp,,2222,,22"     "nic2" "natpf2" "ssh"
+VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "ssh,tcp,,2222,,22"
+#  3389    "rdp,tcp,,3369,,3389"   "nic2" "natpf2" "rdp"
+VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "rdp,tcp,,3369,,3389"
+
+
 echo "Add Host-only NIC"
 # The second adapter is set to host only.
 VBoxManage modifyvm "$RUNNING_VM" --nic2 hostonly
