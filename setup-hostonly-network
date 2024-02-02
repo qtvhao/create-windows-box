@@ -100,6 +100,9 @@ ssh -i /root/id_rsa $VM_ASSIGNED_IP echo Hello from Windows VM
 ssh -i /root/id_rsa $VM_ASSIGNED_IP powershell -Command "ping 192.168.56.1 -n 1"
 
 echo "VM_ASSIGNED_IP:$VM_ASSIGNED_IP"
+# VM_ASSIGNED_IP="192.168.56.104"
+scp -i /root/id_rsa /root/id_rsa root@$VM_ASSIGNED_IP:C:\\Users\\root\\id_rsa
+ssh -i /root/id_rsa -t "$VM_ASSIGNED_IP" powershell -Command "ssh -i C:\\Users\\root\\id_rsa 192.168.56.1 echo Hello from Host Machine"
 
 # The host Windows will have 192.168.56.1 as IP for the internal network (VirtualBox Host-Only Network is the name in network connections in Windows).
 HOST_IP_INTERNAL_NETWORK="192.168.56.1"
