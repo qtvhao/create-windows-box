@@ -85,7 +85,7 @@ while true; do
     check_if_ip_is_pingable && break || true
     sleep 2
 done
-VM_ASSIGNED_IP=`check_if_ip_is_pingable`
+VM_ASSIGNED_IP=`check_if_ip_is_pingable | tail -n 1`
 
 echo "Assigned IP: $VM_ASSIGNED_IP"
 ssh-keygen -R "$VM_ASSIGNED_IP" || true
@@ -93,6 +93,7 @@ while true; do
     ssh-keyscan "$VM_ASSIGNED_IP" >> ~/.ssh/known_hosts && break || true
     sleep 2
 done
+echo "VM_ASSIGNED_IP:$VM_ASSIGNED_IP"
 
 # What this will give you is being able to access the apache server on ubuntu, from windows, by going to 192.168.56.56.
 ssh -i /root/id_rsa $VM_ASSIGNED_IP echo Hello from Windows VM
