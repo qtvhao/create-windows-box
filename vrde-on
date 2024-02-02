@@ -34,6 +34,8 @@ ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKL
 ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'AutoAdminLogon' -Value 1"
 ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DefaultPassword' -Value '"$PASSWORD"'"
 
+# ./on-boot.ps1 At log on of any user
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Register-ScheduledTask -TaskName 'OnLogon' -Action (New-ScheduledTaskAction -Execute 'Powershell.exe' -Argument '-File C:\Users\root\Desktop\on-boot.ps1') -Trigger (New-ScheduledTaskTrigger -AtLogOn) -RunLevel Highest -Force"
 
 # restart the machine
 ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Restart-Computer -Force"
