@@ -37,6 +37,7 @@ VBoxManage modifyvm "$RUNNING_VM" --nic1 nat
 # VBoxManage modifyvm "$RUNNING_VM" --natdnshostresolver1 on
 # virtio is the default NIC type for Ubuntu 18.04 and newer.
 # For Intel 1000/MT Server (82545EM) NIC type, use e1000.
+# Also, Ubuntu will have internet access, since the first adapter (set to NAT) will take care of that.
 
 echo "Add Host-only NIC"
 # The second adapter is set to host only.
@@ -44,9 +45,6 @@ VBoxManage modifyvm "$RUNNING_VM" --nic2 hostonly
 VBoxManage modifyvm "$RUNNING_VM" --hostonlyadapter2 vboxnet0
 
 # Start the virtual machine and assign a static IP for the second adapter in Ubuntu (for instance 192.168.56.56).
-# The host Windows will have 192.168.56.1 as IP for the internal network (VirtualBox Host-Only Network is the name in network connections in Windows).
-# What this will give you is being able to access the apache server on ubuntu, from windows, by going to 192.168.56.56.
-# Also, Ubuntu will have internet access, since the first adapter (set to NAT) will take care of that.
 VBoxManage startvm "$RUNNING_VM" --type headless
 # while true; do
 #     sleep 6
@@ -84,4 +82,12 @@ while true; do
     sleep 2
 done
 
-ssh -i /root/id_rsa $VM_ASSIGNED_IP "echo 'Hello from Windows VM'"
+# What this will give you is being able to access the apache server on ubuntu, from windows, by going to 192.168.56.56.
+ssh -i /root/id_rsa $VM_ASSIGNED_IP echo Hello from Windows VM
+ssh -i /root/id_rsa $VM_ASSIGNED_IP powershell -Command "ping 192.168.56.1 -n 1"
+
+echo "VM_ASSIGNED_IP:$VM_ASSIGNED_IP"
+
+# The host Windows will have 192.168.56.1 as IP for the internal network (VirtualBox Host-Only Network is the name in network connections in Windows).
+HOST_IP_INTERNAL_NETWORK="192.168.56.1"
+
