@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -xeo pipefail
+
+args=("$@")
+IP_ADDRESS=${args[0]}
+
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DontDisplayLastUserName' -Value 1"
+echo "Don't display the user name on the login screen"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DontDisplayLockedUserId' -Value 1"
+echo "Disable the lock screen"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenAppNotifications' -Value 1"
+echo "Disable lock screen app notifications"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenCamera' -Value 1"
+echo "Disable lock screen camera"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenCortana' -Value 1"
+echo "Disable lock screen Cortana"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenSlideShow' -Value 1"
+echo "Disable lock screen slide show"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenSound' -Value 1"
+echo "Disable lock screen sound"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenTips' -Value 1"
+echo "Disable lock screen tips"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenTimeout' -Value 1"
+echo "Disable lock screen timeout"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableLockScreenBackgroundImage' -Value 1"
+echo "Disable lock screen background image"
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'NoLockScreen' -Value 1"
+echo "Disable lock screen"
+
+
+# restart the machine
+ssh -i /root/id_rsa $IP_ADDRESS powershell -Command "Restart-Computer -Force"
+echo "Restart the machine"
