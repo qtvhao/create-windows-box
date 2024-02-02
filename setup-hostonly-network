@@ -42,8 +42,12 @@ VBoxManage modifyvm "$RUNNING_VM" --nic1 nat
 #  6379    "redis,tcp,,6379,,6379" "nic2" "natpf2" "redis"
 # VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "redis,tcp,,6379,,6379"
 #  22      "ssh,tcp,,2222,,22"     "nic2" "natpf2" "ssh"
+# Delete the rule for the port 2222 if it already exists.
+VBoxManage modifyvm "$RUNNING_VM" --natpf1 delete "ssh" || true
 VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "ssh,tcp,,2222,,22"
 #  3389    "rdp,tcp,,3369,,3389"   "nic2" "natpf2" "rdp"
+# Delete the rule for the port 3369 if it already exists.
+VBoxManage modifyvm "$RUNNING_VM" --natpf1 delete "rdp" || true
 VBoxManage modifyvm "$RUNNING_VM" --nic1 nat --natpf1 "rdp,tcp,,3369,,3389"
 
 
@@ -62,7 +66,7 @@ VBoxManage startvm "$RUNNING_VM" --type headless
 
 return_if_ip_is_pingable() {
     IP_TO_CHECK=$1
-    ping -c 1 -W 1 $IP_TO_CHECK 2>/dev/null >/dev/null && echo "$IP_TO_CHECK" && return 0 || true
+    ping -c 1 -W 1 $IP_TO_CHECK 2>/dev/null >/dev/null && echo "$IP_TO_CHECK" && return 0 || return 1
 }
 check_if_ip_is_pingable() {
     ASSIGNED_IP=""
