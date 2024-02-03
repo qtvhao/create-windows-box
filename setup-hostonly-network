@@ -33,7 +33,9 @@ set -xeo pipefail
 
 echo "Add NAT NIC"
 # The first adapter is set to NAT (that will give you the internet connection).
-VBoxManage modifyvm "$RUNNING_VM" --nic1 nat
+while true; do
+    VBoxManage modifyvm "$RUNNING_VM" --nic1 nat && break || true
+done
 # VBoxManage modifyvm "$RUNNING_VM" --natdnshostresolver1 on
 # virtio is the default NIC type for Ubuntu 18.04 and newer.
 # For Intel 1000/MT Server (82545EM) NIC type, use e1000.
